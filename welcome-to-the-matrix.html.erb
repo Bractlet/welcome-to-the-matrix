@@ -2,45 +2,65 @@
 <html>
 <head>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+	<script src="js/Snap.svg-0.5.1/dist/snap.svg-min.js"></script>
 	<!-- <link rel = "stylesheet" type = "text/css" href="styles/style.css"></link> -->
 </head>
 
 <body>
 	<h1>Welcome to the matrix</h1>
-	<canvas id="thermal-zone-floor-plan-container" width="600" height="600"></canvas>
+	<svg id="drawing" height= "600" width= "800" ></svg>
 </body>
 
 <script type="text/javascript">
-	var canvas = document.getElementById('thermal-zone-floor-plan-container');
-	var context = canvas.getContext('2d');
+	var draw = Snap('#drawing');
 
-	context.strokeStyle = '#4dadf1';
-	context.font = '10px sans-serif';
+	var bigCirle = draw.circle(150,150,100);
 
-	var drawShape = function(vertexes,tz,ctx) {
+	var drawShape = function(vertexes,tz) {
 		var vertexes;
 		var scale = 10;
 		var x_shift = 200;
 		var y_shift = 300;
+		var scaled_vertexes = [];
 
-		ctx.fillStyle = '#fff';
-		ctx.lineWidth = 5;
-		ctx.beginPath();
-    ctx.moveTo(vertexes[0].x*scale+x_shift, vertexes[0].y*scale+y_shift);
-
-    for (var i = 1; i < vertexes.length; i++) {
-    	ctx.lineTo(vertexes[i].x*scale+x_shift,vertexes[i].y*scale+y_shift)
+    for (var i = 0; i < vertexes.length; i++) {
+    	scaled_vertexes.push([vertexes[i][0]*scale+x_shift,vertexes[i][1]*scale+y_shift]);
     }
 
-    ctx.closePath();
-    ctx.stroke();
-    ctx.fill();
+		var polygon = draw.paper.polygon(scaled_vertexes);
 
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'black';
-    x_shift_title = -20;
-    y_shift_title = -20;
-    ctx.fillText(tz,vertexes[0].x*scale+x_shift+x_shift_title,vertexes[0].y*scale+y_shift+y_shift_title);
+		polygon
+			.attr({
+			 	fill: '#fff',
+			 	stroke: '#000',
+			 	strokeWidth: 2
+			 })
+
+		polygon.hover(function(){
+			this.attr({
+		 	fill: '#f06'
+		})
+		},function(){
+			this.attr({
+		 	fill: '#fff'
+		 })
+   })
+
+	  var x_sum = 0;
+	  var y_sum = 0;
+
+		for (var i = 0; i < scaled_vertexes.length; i++) {
+			x_sum = x_sum + scaled_vertexes[i][0];
+			y_sum = y_sum + scaled_vertexes[i][1];
+		}
+
+	  var x_avg = x_sum / scaled_vertexes.length;
+	  var y_avg = y_sum / scaled_vertexes.length;
+  
+	  var tz_id = draw.paper.text(x_avg-15,y_avg+4,tz)
+	  	.attr({
+	  		'font-size': '8px'
+	  	})
 	} 
 
 	geometry = [
@@ -49,7 +69,7 @@
 				<% vertex_string = "[" %>
 
 				<% surface_object[:vertexes].each_with_index do |vertex,j| %>
-					<% vertex_string << "{x: #{vertex[:x]},y: #{vertex[:y]},z: #{vertex[:z]}}" %>
+					<% vertex_string << "[#{vertex[:x]},#{vertex[:y]}]" %>
 					<% if j != surface_object[:vertexes].length-1 %>
 						<% vertex_string << "," %>
 					<% end %>
@@ -62,8 +82,9 @@
 	]
 
 	for (var i = 0; i < geometry.length; i++) {
-		drawShape(geometry[i].vertexes,geometry[i].zone_name,context)
+		drawShape(geometry[i].vertexes,geometry[i].zone_name)
 	}
+
 
 </script>
 <style>
