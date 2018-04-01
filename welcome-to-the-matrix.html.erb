@@ -3,93 +3,149 @@
 <head>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
 	<script src="js/Snap.svg-0.5.1/dist/snap.svg-min.js"></script>
-	<!-- <link rel = "stylesheet" type = "text/css" href="styles/style.css"></link> -->
+	<link rel = "stylesheet" type = "text/css" href="styles/style.css"></link>
 </head>
 
 <body>
-	<h1>Welcome to the matrix</h1>
-	<svg id="drawing" height= "600" width= "800" ></svg>
+	<nav class="top-bar">
+		<div class="top-bar-title">
+			Welcome to the Matrix
+		</div>
+	</nav>
+	<main class="content-container">
+
+		<nav class="floor-nav-container">
+			<div class="nav-elements-wrapper">
+				<% zones_by_floor.each_with_index do |floor,index| %>
+					<% floor_name = zones_by_floor.select { |floor| floor[:floor_index] == (zones_by_floor.length - 1 - index) }.first[:floor_name] %>
+				<div class="floor-nav-element <%= if floor_name == "Floor 1" then "floor-nav-element--selected" end %>" id="<%="nav--#{floor_name.gsub(' ','')}" %>">
+					<div class="floor-nav-element--title">
+						<%= floor_name %>
+					</div>
+					<div class="floor-nav-element--floor-geometry-wrapper">
+						<svg class="small-floor" id="<%="small-floor--#{floor_name.gsub(' ','')}"%>"></svg>
+					</div>
+				</div>
+				<% end %> 
+			</div>
+		</nav>
+
+		<section class="floor-container">
+			<div class="floor-wrapper">
+				<h2 id="floor-name-title">
+					Floor 1
+				</h2>
+				<div class="floor-geometry">
+					<% zones_by_floor.each_with_index do |floor,index| %>
+						<% floor_name = zones_by_floor.select { |floor| floor[:floor_index] == (zones_by_floor.length - 1 - index) }.first[:floor_name] %>
+						<svg class="large-floor" style="<%= if floor_name != "Floor 1" then "display: none" end %>" id="<%="large-floor--#{floor_name.gsub(' ','')}"%>" ></svg>
+					<% end %>
+				</div>
+			</div>
+		</section>
+
+		<section class="helper-panel-container">
+		</section>
+	</main>
+
 </body>
 
 <script type="text/javascript">
-	var draw = Snap('#drawing');
 
-	var bigCirle = draw.circle(150,150,100);
+	var drawShape = function(vertexes,tz_name,floor_name,scale_factor,floor_type) {
 
-	var drawShape = function(vertexes,tz) {
 		var vertexes;
-		var scale = 10;
-		var x_shift = 200;
-		var y_shift = 300;
 		var scaled_vertexes = [];
 
     for (var i = 0; i < vertexes.length; i++) {
-    	scaled_vertexes.push([vertexes[i][0]*scale+x_shift,vertexes[i][1]*scale+y_shift]);
+    	scaled_vertexes.push([vertexes[i][0]*scale_factor,vertexes[i][1]*scale_factor]);
     }
 
-		var polygon = draw.paper.polygon(scaled_vertexes);
+		if (floor_type == "large") {
+			var draw = Snap('#large-floor--' + floor_name.replace(' ',''));
 
-		polygon
-			.attr({
-			 	fill: '#fff',
-			 	stroke: '#000',
-			 	strokeWidth: 2
+			var polygon = draw.paper.polygon(scaled_vertexes);
+
+			polygon
+				.attr({
+				 	fill: '#fff',
+				 	stroke: '#000',
+				 	strokeWidth: 2
+				 })
+
+			polygon.hover(function(){
+				this.attr({
+			 	fill: '#f06'
+			})
+			},function(){
+				this.attr({
+			 	fill: '#fff'
 			 })
+	   })
 
-		polygon.hover(function(){
-			this.attr({
-		 	fill: '#f06'
-		})
-		},function(){
-			this.attr({
-		 	fill: '#fff'
-		 })
-   })
+		  var x_sum = 0;
+		  var y_sum = 0;
 
-	  var x_sum = 0;
-	  var y_sum = 0;
+			for (var i = 0; i < scaled_vertexes.length; i++) {
+				x_sum = x_sum + scaled_vertexes[i][0];
+				y_sum = y_sum + scaled_vertexes[i][1];
+			}
 
-		for (var i = 0; i < scaled_vertexes.length; i++) {
-			x_sum = x_sum + scaled_vertexes[i][0];
-			y_sum = y_sum + scaled_vertexes[i][1];
+		  var x_avg = x_sum / scaled_vertexes.length;
+		  var y_avg = y_sum / scaled_vertexes.length;
+
+		  var tz_id = draw.paper.text(x_avg-15,y_avg+4,tz_name)
+		  	.attr({
+		  		'font-size': '8px'
+		  	})
+
+		} else {
+			var draw = Snap('#small-floor--' + floor_name.replace(' ',''));
+
+			var polygon = draw.paper.polygon(scaled_vertexes);
+
+			polygon
+				.attr({
+				 	fill: '#3D474E',
+				 	stroke: '#fff',
+				 	strokeWidth: 0.25
+				 })
 		}
-
-	  var x_avg = x_sum / scaled_vertexes.length;
-	  var y_avg = y_sum / scaled_vertexes.length;
-  
-	  var tz_id = draw.paper.text(x_avg-15,y_avg+4,tz)
-	  	.attr({
-	  		'font-size': '8px'
-	  	})
-	} 
-
-	geometry = [
-		<% geometry_hash.each_with_index do |surface_object,i| %>
-			<% if surface_object[:zone_name].include? "TZ13" %>
-				<% vertex_string = "[" %>
-
-				<% surface_object[:vertexes].each_with_index do |vertex,j| %>
-					<% vertex_string << "[#{vertex[:x]},#{vertex[:y]}]" %>
-					<% if j != surface_object[:vertexes].length-1 %>
-						<% vertex_string << "," %>
-					<% end %>
-				<% end %>
-				<% vertex_string << "]" %>
-				<% surface_object_string =  "{surface_name: #{"'"}#{surface_object[:surface_name]}#{"'"}, zone_name: #{"'"}#{surface_object[:zone_name]}#{"'"}, vertexes: #{vertex_string}}," %>
-				<%= surface_object_string %>
-			<% end %>
-		<% end %>
-	]
-
-	for (var i = 0; i < geometry.length; i++) {
-		drawShape(geometry[i].vertexes,geometry[i].zone_name)
 	}
+
+	var zones_by_floor = <%= zones_by_floor.to_json %>
+	var large_scale_factor = <%= max_dimensions[:max_x] > max_dimensions[:max_y] ? 600 : 450 %>
+	var small_scale_factor = <%= max_dimensions[:max_x] > max_dimensions[:max_y] ? 60 : 45 %>
+
+	for (var j = 0; j < zones_by_floor.length; j++) {
+		for (var i = 0; i < zones_by_floor[j].zones.length; i++) {
+			drawShape(zones_by_floor[j].zones[i].vertexes,zones_by_floor[j].zones[i].zone_name,zones_by_floor[j].floor_name,large_scale_factor,"large")
+			drawShape(zones_by_floor[j].zones[i].vertexes,zones_by_floor[j].zones[i].zone_name,zones_by_floor[j].floor_name,small_scale_factor,"small")
+		}
+	}
+	
+	$('.floor-nav-element').click(function(){
+		var floor_name__nav = this.id.replace(/nav--/,'')
+		$('#floor-name-title').empty(floor_name__nav.replace(/Floor/,'Floor '))
+		$('#floor-name-title').append(floor_name__nav.replace(/Floor/,'Floor '))
+
+		$('.floor-geometry').children().each(function(){
+			if (this.id.replace(/large-floor--/,'') == floor_name__nav) {
+				$(this).show()
+			} else {
+				$(this).hide()
+			}
+		})
+
+		$('.nav-elements-wrapper').children().each(function(){
+			if (this.id.replace(/nav--/,'') == floor_name__nav) {
+				$(this).addClass('floor-nav-element--selected')
+			} else {
+				$(this).removeClass('floor-nav-element--selected')
+			}
+		})
+	})
 
 
 </script>
-<style>
-	#thermal-zone-floor-plan-container {
-		border: 1px solid grey;
-	}
-</style>
 </html>
